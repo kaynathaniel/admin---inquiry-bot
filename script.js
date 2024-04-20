@@ -28,6 +28,11 @@ const handleChat = async () => {
   chatbox.appendChild(createChatLi(userMessage, "outgoing"));
   chatbox.scrollTop = chatbox.scrollHeight; // Scroll to bottom of chatbox
 
+  // Display "Thinking..." message
+  chatbox.appendChild(createChatLi("Thinking...", "incoming"));
+  chatbox.scrollTop = chatbox.scrollHeight; // Scroll to bottom after showing "Thinking..." message
+
+
   try {
     const response = await fetch('http://localhost:3000/send-message', {
       method: 'POST',
@@ -41,18 +46,21 @@ const handleChat = async () => {
       throw new Error('Failed to get assistant response');
     }
 
-    //show loading sign
 
     const responseData = await response.json();
     const assistantMessage = responseData.message;
 
-    //hide loading sign
+    
+    // Remove "Thinking..." message
+    chatbox.removeChild(chatbox.lastChild);
 
     chatbox.appendChild(createChatLi(assistantMessage[0].text.value, "incoming"));
     chatbox.scrollTop = chatbox.scrollHeight; // Scroll to bottom after assistant response
   } catch (error) {
 
-    //hide loading sign
+    
+    // Remove "Thinking..." message
+    chatbox.removeChild(chatbox.lastChild);
 
     console.error('Error handling assistant response:', error);
     const errorMessage = 'Oops! Something went wrong. Please try again.';

@@ -20,13 +20,28 @@ app.use(express.json());
 const assistantId = ASSISTANT_ID;
 const TIMEOUT_MS = 30000; // Timeout set to 30 seconds
 
-// Set up a Thread
+// Set up a global variable to store the thread
+let globalThreadId;
+
+// Function to get or create a thread
+async function getOrCreateThread() {
+    if (globalThreadId) {
+        return globalThreadId;
+    } else {
+        const thread = await createThread();
+        globalThreadId = thread.id;
+        return globalThreadId;
+    }
+}
+
+// Function to create a new thread
 async function createThread() {
     console.log('Creating a new thread...');
     const thread = await openai.beta.threads.create();
     return thread;
 }
 
+// Function to add a message to a thread
 async function addMessage(threadId, message) {
     console.log('Adding a new message to thread: ' + threadId);
     const response = await openai.beta.threads.messages.create(
@@ -39,6 +54,7 @@ async function addMessage(threadId, message) {
     return response;
 }
 
+// Function to run the assistant with a timeout
 async function runAssistantWithTimeout(threadId) {
     console.log('Running assistant for thread: ' + threadId);
     let assistantResponse;
@@ -54,22 +70,27 @@ async function runAssistantWithTimeout(threadId) {
     return assistantResponse;
 }
 
-// Open a new thread
-app.get('/thread', (req, res) => {
-    createThread().then(thread => {
+// Endpoint to create a new thread
+app.get('/thread', async (req, res) => {
+    try {
+        const thread = await createThread();
+        globalThreadId = thread.id;
         res.json({ threadId: thread.id });
-    });
-})
+    } catch (error) {
+        console.error('Error creating new thread:', error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+});
 
+// Endpoint to send a message
 app.post('/send-message', async (req, res) => {
     try {
         const userMessage = req.body.message;
         console.log('User Message:', userMessage);
 
-        const thread = await createThread();
-        console.log('Created Thread:', thread);
+        const threadId = await getOrCreateThread();
+        console.log('Using Thread:', threadId);
 
-        const threadId = thread.id;
         await addMessage(threadId, userMessage);
         console.log('Added Message to Thread');
 
